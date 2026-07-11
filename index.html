@@ -9,79 +9,43 @@
 	<script>
 		window.MobileAdInGamePreroll = {Close:function(){}};
 		window.MobileAdInGameEnd = {Close:function(){}};
-		window.GameDistribution = null;
-		window.gdApi = null;
-		window.gdsdk = {
-			play: function(){},
-			showAd: function(){ return Promise.resolve(); },
-			preloadAd: function(){ return Promise.resolve(true); },
-			isAvailable: function(){ return true; },
-			isAvailableRewarded: function(){ return true; },
-			showRewarded: function(cb){ if(cb) cb(true); },
-			close: function(){}
-		};
-		window.ig = {
-			gd: {
-				show: function(cb){ if(cb) cb(); },
-				close: function(){},
-				ready: true,
-				freez: function(){},
-				unfreez: function(){},
-				showRewarded: function(cb){ if(cb) cb(true); },
-				isFreez: 0,
-				adShowing: 0
-			}
-		};
+		window.gdsdk = { play: function(){}, showAd: function(){ return Promise.resolve(); }, preloadAd: function(){ return Promise.resolve(true); } };
+		window.ig = { gd: { show: function(cb){ if(cb) cb(); }, close: function(){}, ready: true, freez: function(){}, unfreez: function(){} } };
+		window.gdApi = null; window.GameDistribution = null;
 	</script>
 	<script>
-		// Block main.min.js injection
-		var _origCreate = document.createElement.bind(document);
-		document.createElement = function(tag) {
-			var el = _origCreate(tag);
-			if (tag === 'script') {
-				var origSet = el.setAttribute.bind(el);
-				el.setAttribute = function(k, v) {
-					if (k === 'src' && typeof v === 'string' && v.indexOf('main.min') >= 0) return;
-					return origSet(k, v);
-				};
-			}
-			return el;
+		var _ce = document.createElement.bind(document);
+		document.createElement = function(t) { var e = _ce(t); if(t==='script'){ var s = e.setAttribute.bind(e); e.setAttribute = function(k,v){ if(k==='src'&&(v+'').indexOf('main.min')>=0) return; return s(k,v); }; } return e; };
+	</script>
+	<script>
+		var _IMG_PATH = window.location.href.substring(0, window.location.href.lastIndexOf('/') + 1);
+		var _origImage = window.Image;
+		window.Image = function() {
+			var img = new _origImage();
+			var origSet = Object.getOwnPropertyDescriptor(HTMLImageElement.prototype, 'src').set;
+			Object.defineProperty(img, 'src', {
+				get: function() { return img._src || ''; },
+				set: function(v) {
+					img._src = v;
+					try { origSet.call(img, v); } catch(e) {}
+					if (!img.crossOrigin) img.crossOrigin = 'anonymous';
+				}
+			});
+			return img;
 		};
 	</script>
 	<script src="game.js"></script>
 	<script>
-		// Trigger SDK_READY
-		(function trigger(){
-			if (window.GD_OPTIONS && window.GD_OPTIONS.onEvent) {
-				window.GD_OPTIONS.onEvent({ name: 'SDK_READY' });
-			} else { setTimeout(trigger, 200); }
-		})();
-
-		// After game init, skip tap-to-start + branding, force MainMenu
-		var _count = 0;
-		var _patch = setInterval(function() {
-			_count++;
-			if (!ig || !ig.game) return;
+		(function _pollSDK(){ if(window.GD_OPTIONS&&window.GD_OPTIONS.onEvent){ window.GD_OPTIONS.onEvent({name:'SDK_READY'}); }else{setTimeout(_pollSDK,200);} })();
+		var _c = 0, _f = setInterval(function(){ _c++; if(!ig||!ig.game) return;
 			var g = ig.game;
-			if (g.tapToStartDiv) g.tapToStartDiv = function(cb){ if(cb) cb(); };
-			if (g._drawStatus !== undefined && g._drawStatus < 1) g._drawStatus = 999;
-			if (g.status !== undefined && g.status < 1) g.status = 999;
-			if (g.startBabylonIfReady) {
-				g.startBabylonIfReady = function() {
-					g.status = 999;
-					setTimeout(function() {
-						if (g.startRender) g.startRender();
-						g._drawStatus = 999;
-						if (ig.system && ig.system.setGame && typeof MyGame !== 'undefined') {
-							ig.system.setGame(MyGame);
-						} else if (g.director && g.director.levels && g.director.levels.length > 0) {
-							g.director.loadLevel(0);
-						}
-					}, 100);
-				};
-			}
-			if (_count >= 50) clearInterval(_patch);
+			if(g.tapToStartDiv) g.tapToStartDiv = function(cb){ cb(); };
+			g.status = 999; g._drawStatus = 999;
+			var d = g.director; if(!d) return;
+			if(_c >= 5 && d.currentLevel === 0 && d.levels.length > 1) { clearInterval(_f); d.loadLevel(1); }
+			if(_c > 100) clearInterval(_f);
 		}, 300);
+		setTimeout(function(){ var d = ig&&ig.game&&ig.game.director; if(d&&d.currentLevel===0) d.loadLevel(1); }, 8000);
 	</script>
 </head>
 <body onload="setTimeout(function(){window.scrollTo(0,1)},1);">
