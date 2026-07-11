@@ -9,7 +9,6 @@
 	<script>
 		window.MobileAdInGamePreroll={Close:function(){}};
 		window.MobileAdInGameEnd={Close:function(){}};
-		window.gdsdk={play:function(){},showAd:function(){return Promise.resolve()},preloadAd:function(){return Promise.resolve(true)}};
 		window.ig = { gd: { show: function(cb){ if(cb) setTimeout(cb,100); }, close: function(){}, ready: false } };
 		window.gdApi=null;
 		window.GameDistribution=null;
@@ -23,10 +22,19 @@
 				setTimeout(triggerStart, 200);
 			}
 		})();
-		var _fixInt = setInterval(function() {
-			if (window.ig && ig.game && ig.game.director) {
-				clearInterval(_fixInt);
-				ig.game.director.loadLevel("MainMenu");
+		var _fix = setInterval(function() {
+			if (!window.ig || !ig.game) return;
+			clearInterval(_fix);
+			if (ig.game.tapToStartDiv) {
+				ig.game.tapToStartDiv = function(cb) { if(cb) cb(); };
+			}
+			if (ig.game._drawStatus !== undefined) ig.game._drawStatus = 999;
+			var director = ig.game.director;
+			if (director) {
+				if (ig.BrandingSplash) {
+					ig.BrandingSplash.prototype.init = function() {};
+				}
+				director.loadLevel("MainMenu");
 			}
 		}, 500);
 	</script>
