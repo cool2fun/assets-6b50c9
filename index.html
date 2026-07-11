@@ -22,6 +22,19 @@
 				setTimeout(triggerStart, 200);
 			}
 		})();
+		(function skipBranding() {
+			var check = setInterval(function() {
+				if (!window.ig || !ig.game || !ig.game.spawnEntity) return;
+				var orig = ig.game.spawnEntity;
+				ig.game.spawnEntity = function(type, x, y) {
+					var name = (type && type.name) || (type && type.prototype && type.prototype.constructor && type.prototype.constructor.name) || '';
+					if (name && name.toLowerCase().indexOf('branding') >= 0) return null;
+					return orig.apply(this, arguments);
+				};
+				ig.game.goToLevel('MainMenu');
+				clearInterval(check);
+			}, 500);
+		})();
 	</script>
 </head>
 <body onload="setTimeout(function(){window.scrollTo(0,1)},1);">
